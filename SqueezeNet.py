@@ -7,6 +7,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.init as init
+import pytorch_model_summary
 
 
 class Fire(nn.Module):
@@ -68,4 +69,4 @@ class SqueezeNet(nn.Module):
 
 
 if __name__ == '__main__':
-    print('SqueezeNet.py running')
+    print(pytorch_model_summary.summary(SqueezeNet(), torch.rand((1, 1, 28, 28)), show_input=False))
