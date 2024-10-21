@@ -24,6 +24,7 @@ train_iter, test_iter = DataLoader.load_dataset(batch_size)
 model = SqueezeNet.SqueezeNet(num_classes, dropout).to(dev)
 loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(model.parameters(), lr=lr)
+lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, factor=0.1)
 
 
 def train_loop(dataloader: dataloader.DataLoader, model: nn.Module, loss_fn, optimizer):
@@ -41,7 +42,7 @@ def train_loop(dataloader: dataloader.DataLoader, model: nn.Module, loss_fn, opt
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 
 
-def test_loop(dataloader: dataloader.DataLoader, model: nn.Module, loss_fn):
+def test_loop(dataloader: dataloader.DataLoader, model: nn.Module, loss_fn, lr_scheduler: torch.optim.lr_scheduler = None):
     model.eval()
     size = len(dataloader.dataset)
     num_batches = len(dataloader)
@@ -55,6 +56,14 @@ def test_loop(dataloader: dataloader.DataLoader, model: nn.Module, loss_fn):
 
     test_loss /= num_batches
     correct /= size
+
+    if lr_scheduler and isinstance(lr_scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+        lr_scheduler.step(test_loss)
+    elif lr_scheduler and not isinstance(lr_scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+        lr_scheduler.step()
+    else:
+        pass
+
     print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
 
 
@@ -63,7 +72,7 @@ if __name__ == '__main__':
     for epoch in range(epochs):
         print(f"Epoch {epoch + 1}\n-------------------------------")
         train_loop(train_iter, model, loss_fn, optimizer)
-        test_loop(test_iter, model, loss_fn)
+        test_loop(test_iter, model, loss_fn, lr_scheduler)
     print('Training Done!')
 
     if os.path.exists(os.path.join('./model', 'SqueezeNet.pth')):
